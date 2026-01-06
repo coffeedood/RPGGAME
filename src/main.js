@@ -236,6 +236,17 @@ class HackNSlashDemo {
           icon: 'war-axe-64.png',
         },
     }));
+    axe.AddComponent(new gltf_component.StaticModelComponent({
+        scene: this._scene,
+        resourcePath: './resources/weapons/FBX/',
+        resourceName: 'Axe.fbx',
+        scale: 0.25,
+        receiveShadow: true,
+        castShadow: true,
+    }));
+    axe.AddComponent(new player_input.PickableComponent());
+    axe.AddComponent(new inventory_controller.PickupComponent());
+    axe.SetPosition(new THREE.Vector3(5, 0, 5));
     this._entityManager.Add(axe);
 
     const sword = new entity.Entity();
@@ -289,12 +300,6 @@ class HackNSlashDemo {
         new spatial_grid_controller.SpatialGridController({grid: this._grid}));
     player.AddComponent(new attack_controller.AttackController({timing: 0.7}));
     this._entityManager.Add(player, 'player');
-
-    player.Broadcast({
-        topic: 'inventory.add',
-        value: axe.Name,
-        added: false,
-    });
 
     player.Broadcast({
         topic: 'inventory.add',

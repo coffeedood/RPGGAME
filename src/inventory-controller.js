@@ -121,9 +121,42 @@ export const inventory_controller = (() => {
     }
   };
 
+  class PickupComponent extends entity.Component {
+    constructor() {
+      super();
+    }
+
+    InitComponent() {
+      this._RegisterHandler('input.picked', (m) => { this._OnPicked(m); });
+    }
+
+    _OnPicked(msg) {
+      const player = this.FindEntity('player');
+      if (!player) {
+        return;
+      }
+
+      const m = {
+        topic: 'inventory.add',
+        value: this._parent.Name,
+        added: false,
+      };
+      
+      player.Broadcast(m);
+
+      if (m.added) {
+        if (this._parent._mesh) {
+          this._parent._mesh.parent.remove(this._parent._mesh);
+        }
+        this._parent.SetActive(false);
+      }
+    }
+  };
+
   
   return {
       InventoryController: InventoryController,
       InventoryItem: InventoryItem,
+      PickupComponent: PickupComponent,
   };
 })();
