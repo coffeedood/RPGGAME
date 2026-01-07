@@ -45,6 +45,22 @@ void main() {
 }`;
 
 
+class SimpleModelComponent extends entity.Component {
+  constructor(params) {
+    super();
+    this._params = params;
+  }
+
+  InitComponent() {
+    this._mesh = new THREE.Mesh(this._params.geometry, this._params.material);
+    this._params.scene.add(this._mesh);
+    this._mesh.position.copy(this._parent._position);
+    this._mesh.quaternion.copy(this._parent._rotation);
+    this._parent._mesh = this._mesh;
+    this._mesh.castShadow = true;
+    this._mesh.receiveShadow = true;
+  }
+};
 
 class HackNSlashDemo {
   constructor() {
@@ -113,7 +129,7 @@ class HackNSlashDemo {
 
     this._LoadControllers();
     this._LoadPlayer();
-    this._LoadFoliage();
+    this._LoadTown();
     this._LoadClouds();
     this._LoadSky();
 
@@ -178,39 +194,59 @@ class HackNSlashDemo {
     }
   }
 
-  _LoadFoliage() {
-    for (let i = 0; i < 100; ++i) {
-      const names = [
-          'CommonTree_Dead', 'CommonTree',
-          'BirchTree', 'BirchTree_Dead',
-          'Willow', 'Willow_Dead',
-          'PineTree',
-      ];
-      const name = names[math.rand_int(0, names.length - 1)];
-      const index = math.rand_int(1, 5);
+  _LoadTown() {
+    const wallMat = new THREE.MeshStandardMaterial({
+        color: 0x808080,
+        roughness: 0.9,
+    });
+    const buildingMat = new THREE.MeshStandardMaterial({
+        color: 0x8B4513,
+        roughness: 0.9,
+    });
 
-      const pos = new THREE.Vector3(
-          (Math.random() * 2.0 - 1.0) * 500,
-          0,
-          (Math.random() * 2.0 - 1.0) * 500);
-
-      const e = new entity.Entity();
-      e.AddComponent(new gltf_component.StaticModelComponent({
-        scene: this._scene,
-        resourcePath: './resources/nature/FBX/',
-        resourceName: name + '_' + index + '.fbx',
-        scale: 0.25,
-        emissive: new THREE.Color(0x000000),
-        specular: new THREE.Color(0x000000),
-        receiveShadow: true,
-        castShadow: true,
-      }));
-      e.AddComponent(
-          new spatial_grid_controller.SpatialGridController({grid: this._grid}));
-      e.SetPosition(pos);
-      this._entityManager.Add(e);
-      e.SetActive(false);
+    for (let i = 0; i < 20; ++i) {
+      this._SpawnStructure(
+          new THREE.Vector3(-100 + i * 10, 4, -100),
+          new THREE.Vector3(10, 8, 2),
+          wallMat);
+      this._SpawnStructure(
+          new THREE.Vector3(-100 + i * 10, 4, 100),
+          new THREE.Vector3(10, 8, 2),
+          wallMat);
+      this._SpawnStructure(
+          new THREE.Vector3(100, 4, -100 + i * 10),
+          new THREE.Vector3(2, 8, 10),
+          wallMat);
+      this._SpawnStructure(
+          new THREE.Vector3(-100, 4, -100 + i * 10),
+          new THREE.Vector3(2, 8, 10),
+          wallMat);
     }
+
+    const positions = [
+      [-40, -40], [-40, 40], [40, -40], [40, 40],
+      [-60, 0], [60, 0], [0, -60], [0, 60]
+    ];
+    for (let p of positions) {
+      this._SpawnStructure(
+          new THREE.Vector3(p[0], 5, p[1]),
+          new THREE.Vector3(10, 10, 10),
+          buildingMat);
+    }
+  }
+
+  _SpawnStructure(pos, scale, material) {
+    const e = new entity.Entity();
+    e.SetPosition(pos);
+    e.AddComponent(new SimpleModelComponent({
+      scene: this._scene,
+      geometry: new THREE.BoxBufferGeometry(scale.x, scale.y, scale.z),
+      material: material,
+    }));
+    e.AddComponent(
+        new spatial_grid_controller.SpatialGridController({grid: this._grid}));
+    this._entityManager.Add(e);
+    e.SetActive(false);
   }
 
   _LoadPlayer() {
@@ -226,40 +262,82 @@ class HackNSlashDemo {
     }));
     this._entityManager.Add(levelUpSpawner, 'level-up-spawner');
 
-    const axe = new entity.Entity();
-    axe.AddComponent(new inventory_controller.InventoryItem({
-        type: 'weapon',
-        damage: 3,
+    const items = [
+      {
+        resourceName: 'Axe.fbx',
         renderParams: {
           name: 'Axe',
-          scale: 0.25,
+          scale: 0.03,
           icon: 'war-axe-64.png',
         },
-    }));
-    axe.AddComponent(new gltf_component.StaticModelComponent({
-        scene: this._scene,
-        resourcePath: './resources/weapons/FBX/',
-        resourceName: 'Axe.fbx',
-        scale: 0.25,
-        receiveShadow: true,
-        castShadow: true,
-    }));
-    axe.AddComponent(new player_input.PickableComponent());
-    axe.AddComponent(new inventory_controller.PickupComponent());
-    axe.SetPosition(new THREE.Vector3(5, 0, 5));
-    this._entityManager.Add(axe);
-
-    const sword = new entity.Entity();
-    sword.AddComponent(new inventory_controller.InventoryItem({
-        type: 'weapon',
-        damage: 3,
+      },
+      {
+        resourceName: 'Sword.fbx',
         renderParams: {
           name: 'Sword',
-          scale: 0.25,
+          scale: 0.03,
           icon: 'pointy-sword-64.png',
         },
-    }));
-    this._entityManager.Add(sword);
+      },
+    ];
+
+    for (let i = 0; i < 10; ++i) {
+      const item = items[math.rand_int(0, items.length - 1)];
+      const e = new entity.Entity();
+      e.AddComponent(new inventory_controller.InventoryItem({
+          type: 'weapon',
+          damage: 3,
+          renderParams: item.renderParams,
+      }));
+      e.AddComponent(new gltf_component.StaticModelComponent({
+          scene: this._scene,
+          resourcePath: './resources/weapons/FBX/',
+          resourceName: item.resourceName,
+          scale: item.renderParams.scale,
+          receiveShadow: true,
+          castShadow: true,
+      }));
+      e.AddComponent(new player_input.PickableComponent());
+      e.AddComponent(new inventory_controller.PickupComponent());
+      
+      const pos = new THREE.Vector3(
+          (Math.random() * 2.0 - 1.0) * 10.0,
+          0,
+          (Math.random() * 2.0 - 1.0) * 10.0);
+      e.SetPosition(pos);
+      this._entityManager.Add(e);
+    }
+
+    for (let i = 0; i < 10; ++i) {
+      const e = new entity.Entity();
+      e.AddComponent(new inventory_controller.InventoryItem({
+          type: 'health',
+          amount: 10,
+          renderParams: {
+            name: 'Healing Herb',
+            scale: 0.01,
+            icon: 'potion.png',
+          },
+      }));
+      e.AddComponent(new gltf_component.StaticModelComponent({
+          scene: this._scene,
+          resourcePath: './resources/monsters/FBX/',
+          resourceName: 'Cactus.fbx',
+          resourceTexture: './resources/monsters/Textures/Cactus_Texture.png',
+          scale: 0.01,
+          receiveShadow: true,
+          castShadow: true,
+      }));
+      e.AddComponent(new player_input.PickableComponent());
+      e.AddComponent(new inventory_controller.PickupComponent());
+      
+      const pos = new THREE.Vector3(
+          (Math.random() * 2.0 - 1.0) * 10.0,
+          0,
+          (Math.random() * 2.0 - 1.0) * 10.0);
+      e.SetPosition(pos);
+      this._entityManager.Add(e);
+    }
 
     const girl = new entity.Entity();
     girl.AddComponent(new gltf_component.AnimatedModelComponent({
@@ -300,18 +378,6 @@ class HackNSlashDemo {
         new spatial_grid_controller.SpatialGridController({grid: this._grid}));
     player.AddComponent(new attack_controller.AttackController({timing: 0.7}));
     this._entityManager.Add(player, 'player');
-
-    player.Broadcast({
-        topic: 'inventory.add',
-        value: sword.Name,
-        added: false,
-    });
-
-    player.Broadcast({
-        topic: 'inventory.equip',
-        value: sword.Name,
-        added: false,
-    });
 
     const camera = new entity.Entity();
     camera.AddComponent(

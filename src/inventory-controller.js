@@ -136,6 +136,20 @@ export const inventory_controller = (() => {
         return;
       }
 
+      const item = this._parent.GetComponent('InventoryItem');
+      if (item && item.Params.type == 'health') {
+        player.Broadcast({
+            topic: 'health.heal',
+            value: item.Params.amount,
+        });
+
+        if (this._parent._mesh) {
+          this._parent._mesh.parent.remove(this._parent._mesh);
+        }
+        this._parent.SetActive(false);
+        return;
+      }
+
       const m = {
         topic: 'inventory.add',
         value: this._parent.Name,

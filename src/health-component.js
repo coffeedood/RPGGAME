@@ -14,6 +14,7 @@ export const health_component = (() => {
     InitComponent() {
       this._RegisterHandler('health.damage', (m) => this._OnDamage(m));
       this._RegisterHandler('health.add-experience', (m) => this._OnAddExperience(m));
+      this._RegisterHandler('health.heal', (m) => this._OnHeal(m));
 
       this._UpdateUI();
     }
@@ -81,6 +82,18 @@ export const health_component = (() => {
       this.Broadcast({
           topic: 'health.death',
       });
+    }
+
+    _OnHeal(msg) {
+      this._health = Math.min(this._health + msg.value, this._maxHealth);
+
+      this.Broadcast({
+        topic: 'health.update',
+        health: this._health,
+        maxHealth: this._maxHealth,
+      });
+
+      this._UpdateUI();
     }
 
     _OnDamage(msg) {

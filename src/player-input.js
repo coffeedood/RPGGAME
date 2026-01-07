@@ -37,14 +37,11 @@ export const player_input = (() => {
     }
   
     _onMouseUp(event) {
-      const rect = document.getElementById('threejs').getBoundingClientRect();
-      const pos = {
-        x: ((event.clientX - rect.left) / rect.width) * 2  - 1,
-        y: ((event.clientY - rect.top ) / rect.height) * -2 + 1,
-      };
+      // hack
+      document.getElementById('quest-ui').style.visibility = 'hidden';
+    }
 
-      this._raycaster.setFromCamera(pos, this._params.camera);
-
+    _OnPickUp() {
       const pickables = this._parent._parent.Filter((e) => {
         const p = e.GetComponent('PickableComponent');
         if (!p) {
@@ -53,23 +50,13 @@ export const player_input = (() => {
         return e._mesh;
       });
 
-      const ray = new THREE.Ray();
-      ray.origin.setFromMatrixPosition(this._params.camera.matrixWorld);
-      ray.direction.set(pos.x, pos.y, 0.5).unproject(
-          this._params.camera).sub(ray.origin).normalize();
-
-      // hack
-      document.getElementById('quest-ui').style.visibility = 'hidden';
-
       for (let p of pickables) {
-        // GOOD ENOUGH
-        const box = new THREE.Box3().setFromObject(p._mesh);
-
-        if (ray.intersectsBox(box)) {
+        const dist = p._position.distanceTo(this._parent._position);
+        if (dist < 4.0) {
           p.Broadcast({
               topic: 'input.picked'
           });
-          break;
+          return;
         }
       }
     }
@@ -93,6 +80,9 @@ export const player_input = (() => {
           break;
         case 16: // SHIFT
           this._keys.shift = true;
+          break;
+        case 69: // e
+          this._OnPickUp();
           break;
       }
     }

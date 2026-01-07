@@ -42,6 +42,7 @@ export const gltf_component = (() => {
       this._target = obj;
       this._params.scene.add(this._target);
 
+      this._parent._mesh = this._target;
       this._target.scale.setScalar(this._params.scale);
       this._target.position.copy(this._parent._position);
 
@@ -139,6 +140,7 @@ export const gltf_component = (() => {
       this._target = obj;
       this._params.scene.add(this._target);
 
+      this._parent._mesh = this._target;
       this._target.scale.setScalar(this._params.scale);
       this._target.position.copy(this._parent._position);
 
